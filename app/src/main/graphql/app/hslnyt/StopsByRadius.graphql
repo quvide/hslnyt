@@ -1,0 +1,29 @@
+query StopsByRadius($lat: Float!, $lon: Float!, $radius: Int!, $first: Int!) {
+  stopsByRadius(lat: $lat, lon: $lon, radius: $radius, first: $first) {
+    edges {
+      node {
+        distance
+        stop {
+          name
+          code
+          stoptimesWithoutPatterns {
+            scheduledArrival
+            realtimeArrival
+            arrivalDelay
+            scheduledDeparture
+            realtimeDeparture
+            departureDelay
+            realtime
+            trip {
+              tripHeadsign
+              routeShortName
+            }
+          }
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}
