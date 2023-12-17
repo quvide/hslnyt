@@ -1,4 +1,4 @@
-package app.hslnyt.ui.theme
+package foo.vide.hslnyt.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
