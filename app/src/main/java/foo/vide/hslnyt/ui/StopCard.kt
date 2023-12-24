@@ -17,19 +17,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import foo.vide.hslnyt.StopsByRadiusQuery
 import foo.vide.hslnyt.repo.StopsRepository
+import foo.vide.hslnyt.type.Mode
 import foo.vide.hslnyt.ui.theme.HSLNytTheme
 import foo.vide.hslnyt.util.FormatTime
 import foo.vide.hslnyt.util.PreviewLightDark
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
 
@@ -63,9 +64,9 @@ fun StopCard(
             }
 
             Spacer(Modifier.height(10.dp))
-            stop.stop!!.stoptimesWithoutPatterns!!.forEachIndexed { idx, it ->
+            stop.stop!!.stoptimesWithoutPatterns!!.forEach { stoptime ->
                 Column {
-                    StoptimeRow(it!!, timeProvider = timeProvider)
+                    StoptimeRow(stoptime!!, timeProvider = timeProvider)
                     Divider()
                 }
             }
@@ -98,18 +99,27 @@ fun StoptimeRow(
             }
         }
 
-        val currentTime = timeProvider().epochSeconds
-        val deltaRaw = realTime - currentTime
-        val formatter: (Long) -> String =
-            if (abs(deltaRaw) < 60 * 60) FormatTime::timeToMMSS else FormatTime::timeToHHMMSS
-        val delta = when {
-            abs(deltaRaw) >= 60 * 60 -> ""
-            deltaRaw < 0 -> "-${formatter(-deltaRaw)}"
-            deltaRaw >= 0 -> "+${formatter(deltaRaw)}"
-            else -> FormatTime.timeToMMSS(deltaRaw)
-        }
-        Text(AnnotatedString("$delta  ") + realTimeStr, style = smallText)
+        DeltaCountdown(realTime, timeProvider, smallText)
+        Spacer(Modifier.width(5.dp))
+        Text(realTimeStr, style = smallText)
     }
+}
+
+@Composable
+private fun DeltaCountdown(realTime: Long, timeProvider: () -> Instant, textStyle: TextStyle) {
+    val currentTime = timeProvider().epochSeconds
+    val deltaRaw = realTime - currentTime
+    val formatter: (Long) -> String =
+        if (abs(deltaRaw) < 60 * 60) FormatTime::timeToMMSS
+        else FormatTime::timeToHHMMSS
+
+    val delta = when {
+        abs(deltaRaw) >= 60 * 60 -> ""
+        deltaRaw < 0 -> "-${formatter(-deltaRaw)}"
+        deltaRaw >= 0 -> "+${formatter(deltaRaw)}"
+        else -> FormatTime.timeToMMSS(deltaRaw)
+    }
+    Text("$delta ", style = textStyle)
 }
 
 @PreviewLightDark
@@ -121,6 +131,7 @@ private fun PreviewStopCard() = HSLNytTheme {
             stop = StopsByRadiusQuery.Stop(
                 code = "XX001122",
                 name = "Stop",
+                vehicleMode = Mode.BUS,
                 stoptimesWithoutPatterns = StopsRepository.Preview.stops.value[0].stop?.stoptimesWithoutPatterns
             )
         ),

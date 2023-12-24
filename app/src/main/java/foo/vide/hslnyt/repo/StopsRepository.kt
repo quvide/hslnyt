@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import com.apollographql.apollo3.ApolloClient
 import foo.vide.hslnyt.BuildConfig
 import foo.vide.hslnyt.StopsByRadiusQuery
+import foo.vide.hslnyt.type.Mode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -32,6 +33,7 @@ interface StopsRepository {
                         stop = StopsByRadiusQuery.Stop(
                             code = "XXX0000",
                             name = "Name",
+                            vehicleMode = Mode.BUS,
                             stoptimesWithoutPatterns = listOf(
                                 StopsByRadiusQuery.StoptimesWithoutPattern(
                                     scheduledArrival = 0,
@@ -83,7 +85,7 @@ object StopsRepositoryImpl : StopsRepository {
                         lat = location.latitude,
                         lon = location.longitude,
                         radius = 1000,
-                        first = 10
+                        first = 50
                     )
                 )
                 .execute()

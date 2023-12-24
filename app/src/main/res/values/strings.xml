@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">HSL Nyt</string>
+    <string name="app_name">Transit Live</string>
+    <string name="refresh">Refresh</string>
+    <string name="location">Location</string>
+    <string name="empty_stops">There seem to be no stops near you.\nTry to refresh your location.</string>
+    <string name="about">About</string>
 </resources>

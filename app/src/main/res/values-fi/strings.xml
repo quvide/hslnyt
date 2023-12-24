@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pysäkkilive</string>
+    <string name="refresh">Päivitä</string>
+    <string name="location">Sijainti</string>
+    <string name="empty_stops">Lähelläsi ei vaikuta olevan pysäkkejä.\nKokeile päivittää sijaintisi uudelleen.</string>
+    <string name="about">Tietoja</string>
+</resources>

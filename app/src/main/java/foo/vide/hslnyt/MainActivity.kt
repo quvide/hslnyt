@@ -15,10 +15,7 @@ import foo.vide.hslnyt.repo.StopsRepositoryImpl
 import foo.vide.hslnyt.ui.HSLNyt
 import foo.vide.hslnyt.ui.theme.HSLNytTheme
 
-const val TAG = "HSLNyt"
-
 class MainActivity : ComponentActivity() {
-    // This is just stupid
     private val locationPermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             locationRepository.locationPermissionCallback(it)
@@ -37,7 +34,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             HSLNytTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
