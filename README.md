@@ -1,6 +1,6 @@
-# HSL Nyt
+# Pysäkkilive
 
-HSL Nyt is a native Android application designed to give real-time information on bus stop
+Pysäkkilive is a native Android application designed to give real-time information on bus stop
 departures near the user in the HSL region. It is implemented using
 [Jetpack Compose](https://developer.android.com/jetpack/compose).
 
@@ -16,13 +16,13 @@ stops. In comparison, this app currently requires under 1 MB of storage space.
 
 ## Screenshots
 
-![docs/Screenshot_20231218_103114.jpg](docs/Screenshot_20231218_103114.jpg)
+![docs/Screenshot_20231225_153416.png](docs/Screenshot_20231225_153416.png)
 
 ## Planned features
 
 * Support for all Digitraffic regions
 * Map with updating vehicle positions
-* Better UI for railway stations
+* Separate station UI
 * Internationalization
 
 ## Licensing

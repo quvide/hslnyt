@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.LocalContentColor
@@ -15,14 +16,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import foo.vide.hslnyt.StationsByIdQuery
 import foo.vide.hslnyt.StopsByRadiusQuery
+import foo.vide.hslnyt.repo.StationStop
 import foo.vide.hslnyt.repo.StopsRepository
 import foo.vide.hslnyt.type.Mode
 import foo.vide.hslnyt.ui.theme.HSLNytTheme
@@ -34,6 +36,86 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
 
+enum class CardType {
+    Stop,
+    Station
+}
+
+@Composable
+private fun CardHeader(
+    name: String,
+    type: CardType,
+    distance: Int
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .alignByBaseline()
+                .widthIn(max = 200.dp),
+            maxLines = 4,
+            softWrap = true
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = when (type) {
+                CardType.Stop -> "(Stop)"
+                CardType.Station -> "(Station)"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.alignByBaseline(),
+            maxLines = 1
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            "${distance}m",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.alignByBaseline(),
+            maxLines = 1
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+}
+
+@Composable
+fun StationCard(
+    stationStop: StationStop,
+    timeProvider: () -> Instant
+) {
+    val station = stationStop.station
+    val stops = stationStop.stops
+
+    ElevatedCard {
+        Column(Modifier.padding(10.dp)) {
+            CardHeader(
+                name = station.name,
+                type = CardType.Station,
+                distance = stops.first().distance!!
+            )
+
+            val platformCodeToStoptimes = stops.flatMap { stop ->
+                stop.stop!!.stoptimesWithoutPatterns!!.map { stoptime ->
+                    Pair(stoptime, stop.stop.platformCode)
+                }
+            }.sortedBy { it.first!!.scheduledDeparture }
+
+            platformCodeToStoptimes.forEach { pair ->
+                val stoptime = pair.first
+                val platformCode = pair.second
+                Column {
+                    StoptimeRow(
+                        stoptime = stoptime!!,
+                        timeProvider = timeProvider,
+                        platformCode = platformCode ?: ""
+                    )
+                    Divider()
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun StopCard(
     stop: StopsByRadiusQuery.Node,
@@ -41,32 +123,19 @@ fun StopCard(
 ) {
     ElevatedCard {
         Column(Modifier.padding(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    stop.stop?.name ?: "???",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.alignByBaseline()
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    stop.stop?.code ?: "???",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.alignByBaseline()
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    "${stop.distance.toString()}m",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.alignByBaseline()
-                )
-            }
+            CardHeader(
+                name = stop.stop?.name ?: "???",
+                type = CardType.Stop,
+                distance = stop.distance ?: 0
+            )
 
-            Spacer(Modifier.height(10.dp))
             stop.stop!!.stoptimesWithoutPatterns!!.forEach { stoptime ->
                 Column {
-                    StoptimeRow(stoptime!!, timeProvider = timeProvider)
+                    StoptimeRow(
+                        stoptime = stoptime!!,
+                        timeProvider = timeProvider,
+                        platformCode = null
+                    )
                     Divider()
                 }
             }
@@ -77,18 +146,37 @@ fun StopCard(
 @Composable
 fun StoptimeRow(
     stoptime: StopsByRadiusQuery.StoptimesWithoutPattern,
+    platformCode: String?,
     timeProvider: () -> Instant
 ) {
     val mediumText = MaterialTheme.typography.bodyMedium
     val smallText = MaterialTheme.typography.bodySmall
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
-        Text(stoptime.trip!!.routeShortName!!, modifier = Modifier.width(40.dp), style = mediumText)
-        Text(" ${stoptime.trip.tripHeadsign}", style = mediumText)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        platformCode?.let {
+            Text(
+                text = it,
+                style = mediumText,
+                modifier = Modifier.width(30.dp)
+            )
+        }
+        Text(
+            text = stoptime.trip!!.routeShortName!!,
+            modifier = Modifier.width(40.dp),
+            style = mediumText
+        )
+        Text(
+            text = "${stoptime.trip.tripHeadsign}",
+            style = mediumText
+        )
         Spacer(Modifier.weight(1f))
 
         val isRealTime = stoptime.realtime!!
         val realTime = (stoptime.realtimeDeparture!! + (stoptime.serviceDay as Int)).toLong()
-        val realLocalTime = Instant.fromEpochSeconds(realTime).toLocalDateTime(TimeZone.currentSystemDefault()).time.toSecondOfDay().toLong()
+        val realLocalTime = Instant
+            .fromEpochSeconds(realTime).toLocalDateTime(TimeZone.currentSystemDefault()).time.toSecondOfDay().toLong()
         val realTimeStr = buildAnnotatedString {
             withStyle(smallText.toSpanStyle().copy(color = LocalContentColor.current.copy(alpha = 0.8f))) {
                 if (isRealTime) withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
@@ -132,8 +220,40 @@ private fun PreviewStopCard() = HSLNytTheme {
                 code = "XX001122",
                 name = "Stop",
                 vehicleMode = Mode.BUS,
-                stoptimesWithoutPatterns = StopsRepository.Preview.stops.value[0].stop?.stoptimesWithoutPatterns
+                stoptimesWithoutPatterns = StopsRepository.Preview.stops.value[0].stop?.stoptimesWithoutPatterns,
+                platformCode = null,
+                parentStation = StopsByRadiusQuery.ParentStation("ADF")
             )
+        ),
+        timeProvider = { Clock.System.now() }
+    )
+}
+
+@PreviewLightDark
+@Composable
+private fun PreviewStationCard() = HSLNytTheme {
+    StationCard(
+        stationStop = StationStop(
+            station = StationsByIdQuery.Station(
+                "Station",
+                "gtfsId"
+            ),
+            stops = StopsRepository.Preview.stops.value
+        ),
+        timeProvider = { Clock.System.now() }
+    )
+}
+
+@PreviewLightDark
+@Composable
+private fun PreviewLongHeader() = HSLNytTheme {
+    StationCard(
+        stationStop = StationStop(
+            station = StationsByIdQuery.Station(
+                "Long Station Name Very Long",
+                "gtfsId"
+            ),
+            stops = StopsRepository.Preview.stops.value
         ),
         timeProvider = { Clock.System.now() }
     )

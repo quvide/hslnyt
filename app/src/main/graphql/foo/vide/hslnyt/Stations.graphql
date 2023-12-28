@@ -1,0 +1,6 @@
+query StationsById($ids: [String]) {
+  stations(ids: $ids) {
+    name
+    gtfsId
+  }
+}

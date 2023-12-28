@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import com.google.android.gms.location.LocationServices
 import foo.vide.hslnyt.repo.LocationRepository
 import foo.vide.hslnyt.repo.LocationRepositoryImpl
+import foo.vide.hslnyt.repo.SettingsRepositoryImpl
 import foo.vide.hslnyt.repo.StopsRepositoryImpl
 import foo.vide.hslnyt.ui.HSLNyt
 import foo.vide.hslnyt.ui.theme.HSLNytTheme
@@ -22,6 +23,8 @@ class MainActivity : ComponentActivity() {
         }
 
     private lateinit var locationRepository: LocationRepository
+    private val settingsRepository = SettingsRepositoryImpl()
+    private val stopsRepository = StopsRepositoryImpl(settingsRepository = settingsRepository)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,8 +42,9 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     HSLNyt(
-                        stopsRepository = StopsRepositoryImpl,
+                        stopsRepository = stopsRepository,
                         locationRepository = locationRepository,
+                        settingsRepository = settingsRepository
                     )
                 }
             }

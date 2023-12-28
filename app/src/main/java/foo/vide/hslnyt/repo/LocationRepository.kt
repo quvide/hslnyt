@@ -1,6 +1,7 @@
 package foo.vide.hslnyt.repo
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -13,11 +14,11 @@ import com.google.android.gms.tasks.CancellationTokenSource
 
 interface LocationRepository {
     val location: State<Location?>
-    val locationStatus: State<LoadingStatus>
+    val locationStatus: State<LocationStatus>
     fun requestLocationUpdate()
     fun locationPermissionCallback(permissions: Map<String, Boolean>)
 
-    enum class LoadingStatus {
+    enum class LocationStatus {
         INITIAL,
         LOADING,
         COMPLETE,
@@ -27,7 +28,7 @@ interface LocationRepository {
     companion object {
         val Preview = object : LocationRepository {
             override val location = mutableStateOf(null)
-            override val locationStatus = mutableStateOf(LoadingStatus.COMPLETE)
+            override val locationStatus = mutableStateOf(LocationStatus.COMPLETE)
             override fun requestLocationUpdate() {}
             override fun locationPermissionCallback(permissions: Map<String, Boolean>) {}
         }
@@ -41,22 +42,34 @@ class LocationRepositoryImpl(
 ) : LocationRepository {
 
     override val location = mutableStateOf<Location?>(null)
-    override val locationStatus = mutableStateOf(LocationRepository.LoadingStatus.INITIAL)
+    override val locationStatus = mutableStateOf(LocationRepository.LocationStatus.INITIAL)
 
-    override fun requestLocationUpdate() {
-        locationStatus.value = LocationRepository.LoadingStatus.LOADING
-        if (
-            context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+    private fun hasLocationPermission(): Boolean {
+        val fine =
+            context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse =
             context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        ) {
+
+        return fine || coarse
+    }
+
+    init {
+        if (hasLocationPermission()) {
+            requestLocationUpdate()
+        }
+    }
+
+    @SuppressLint("MissingPermission") // checked in function, linter isn't smart enough
+    override fun requestLocationUpdate() {
+        locationStatus.value = LocationRepository.LocationStatus.LOADING
+        if (hasLocationPermission()) {
             fusedLocationClient.getCurrentLocation(
                 PRIORITY_HIGH_ACCURACY,
                 CancellationTokenSource().token
-            )
-                .addOnSuccessListener {
-                    location.value = it
-                    locationStatus.value = LocationRepository.LoadingStatus.COMPLETE
-                }
+            ).addOnSuccessListener {
+                location.value = it
+                locationStatus.value = LocationRepository.LocationStatus.COMPLETE
+            }
         } else {
             locationRequest.launch(
                 arrayOf(
@@ -78,7 +91,7 @@ class LocationRepositoryImpl(
             }
 
             else -> {
-                locationStatus.value = LocationRepository.LoadingStatus.DENIED
+                locationStatus.value = LocationRepository.LocationStatus.DENIED
             }
         }
     }

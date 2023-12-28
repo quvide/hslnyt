@@ -7,6 +7,10 @@ query StopsByRadius($lat: Float!, $lon: Float!, $radius: Int!, $first: Int!) {
           name
           code
           vehicleMode
+          platformCode
+          parentStation {
+            gtfsId
+          }
           stoptimesWithoutPatterns {
             scheduledArrival
             realtimeArrival
